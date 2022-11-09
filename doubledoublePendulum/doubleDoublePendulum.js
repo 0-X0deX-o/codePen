@@ -1,0 +1,172 @@
+// double pendulu math from https://github.com/micaeloleveira/physics-sandbox/blob/feature/new-styling/assets/javascripts/pendulum.js
+//
+// convas settings
+
+let viewWidth = window.innerWidth,
+	viewHeight = window.innerHeight,
+	drawingCanvas = document.getElementById("drawing_canvas"),
+	ctx,
+	timeStep = (1/60),
+	time = 0;
+
+//pendulum
+let mass1 = 10,
+	mass2 = 10,
+	mu = 0,
+	Theta1 = Math.PI * 0.5,
+	Theta2 = Math.PI * 0.5,
+	d2Theta1 = 0,
+	d2Theta2 = 0,
+	dTheta1 = 0,
+	dTheta2 = 0,
+	length1 = 120,
+	length2 = 120,
+	anchorX = viewWidth * 0.5,
+	anchorY = viewHeight * 0.3,
+	g = 9.8;
+
+//physics
+let world,
+	body0,
+	body1,
+	body2,
+	dc1,
+	dc2,
+	physicsScale = 32;
+
+let mathTimeScale = 5.6;
+
+//graphics
+let circ1,
+	circ2,
+	circ3,
+	circ4,
+	line1,	
+	line2,	
+	line3,	
+	line4,
+	trail1,
+	trail2;
+
+const initDrawingCanvas = () => {
+	drawingCanvas.width = viewWidth;
+	drawingCanvas.heigh = viewHeight;
+	ctx = drawingCanvas.getContext('2d');
+}
+
+const initGraphics = () => {
+	//math
+	circ1 = {
+		x: anchorX + length1 * Math.sin(Theta1),
+		y: anchorY + length1 * Math.cos(Theta1),
+		radius: mass1
+	};
+	circ2 = {
+		x: anchorX + length1 * Math.sin(Theta1) + length2 * Math.sin(Theta2),
+		y: anchorY + length1 * Math.cos(Theta1) + length2 * Math.cos(Theta1), 
+		radius: mass2
+	};
+	line1 = {
+		x0: anchorX,
+		y0: anchorY,
+		x: 0,
+		y: 0
+	};
+	line2 = {
+		x0: 0,
+		y0: 0,
+		x: 0,
+		y: 0
+	};
+	//physics (values will be set by the physics engine)
+	circ3 = {
+		x: 0,
+		y: 0;
+		radius: 1
+	};
+	circ4 = {
+		x: 0,
+		y: 0,
+		radius: 1
+	};
+	line3 = {
+		x0: 0,
+		y0: 0,
+		x: 0,
+		y: 0
+	};
+	line4 = {
+		x0: 0,
+		y0: 0,
+		x: 0,
+		y: 0
+	};
+
+	trail1 = [];
+	trail2 = [];
+}
+
+const initPhysics = () => {
+	world = new p2.World({gravity:[0, -g]});
+
+	let px = anchorX / physicsScale;
+	let py = (viewHeight - anchorY) / physicsScale;
+	let r1 = mass1 / physicsScale;
+	let r2 = mass2 / physicsScale;
+
+	body0 = new p2.Body({mass:0, position:[px, py]});
+	px += length1 / physicsScale;
+	body1 - new p2.body({mass:1, position:[px, py]});
+	body1.addShape(new p2.Circle(r1));
+	px += length2 / physicsScale;
+
+	body2 = new p2.body({mass:1, position:[px, py]});
+	body.addShape(new p2.Circle(r2));
+
+	dc1 = new p2.DistanceConstraint(body0, body1, {distance: length1 / physicsScale});
+	dc2 = new P2.DistanceConstraint(body1, body2, {distance: length2 / physicsScale});
+	
+	body1.damping = body2.damping = 0;
+	body1.angularDamping = body2.angularDamping = 0;
+
+	world.addBody(body0);
+	world.addBody(body1);
+	world.addBody(body2);
+	world.addConstraint(dc1);
+	world.addConstraint(dc2);
+
+	// sync static values between bodies and corresponding graphics
+	line3.x0 = body0.position[0];
+	line3.y0 = body0.position[1];
+	circ3.radius = r1;
+	circ4.radius = r2;
+};
+
+const update = () => {
+	//MATH
+	let dt = timeStep * mathTimeScale;
+	mu = 1 + mass1 / mass2;
+	d2Theta1 = (
+		g*
+		(Math.sin(Theta2)*
+		Math.cos(Theta1 - Theta2)-
+		mu*
+		Math.sin(Theta1))-
+		(length2*
+		dTheta2*
+		dTheta2+
+		length1*
+		dTheta1*
+		dTheta1*
+		Math.cos(Theta1-Theta2))*
+		Math.sin(Theta1-Theta2))\
+		(length*
+		(mu-Math.cos(Theta1 - Theta2)*
+		Math.cos(Theta1 - Theta2)));
+		d2Theta2 = 
+		(mu*
+		g*
+		(Math.sin(Theta1)*
+		Math.cos(Theta1 - Theta2)-Math.sin(Theta2))+(mu*length1*dTheta1*dTheta1*length2*dTheta2*dTheta2*Math.cos(Theta1 - Theta2))*Math.sin(Theta1 - Theta2))/(length2*(mu-Math.cos(Theta1-Theta2)*Math.cos(Theta1 - Theta2)));
+	)
+}
